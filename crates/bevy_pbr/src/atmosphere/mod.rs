@@ -81,17 +81,18 @@ use environment::{
 use node::{atmosphere_luts, render_sky};
 use resources::{
     prepare_atmosphere_transforms, prepare_atmosphere_uniforms, queue_render_sky_pipelines,
-    AtmosphereTransforms, GpuAtmosphere, RenderSkyBindGroupLayouts,
+    RenderSkyBindGroupLayouts,
 };
+pub use resources::{AtmosphereTransforms, GpuAtmosphere};
 use tracing::warn;
 
 use crate::resources::prepare_atmosphere_buffers;
 
 use self::resources::{
     prepare_atmosphere_bind_groups, prepare_atmosphere_textures, AtmosphereBindGroupLayouts,
-    AtmosphereBindGroups, AtmosphereLutPipelines, AtmosphereSampler, AtmosphereTextures,
-    AtmosphereTransformsOffset, RenderSkyPipelineId,
+    AtmosphereBindGroups, AtmosphereLutPipelines, RenderSkyPipelineId,
 };
+pub use self::resources::{AtmosphereSampler, AtmosphereTextures, AtmosphereTransformsOffset};
 
 #[doc(hidden)]
 pub struct AtmospherePlugin;
