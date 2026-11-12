@@ -111,6 +111,11 @@ pub struct DirectionalLight {
     /// Note that soft shadows are significantly more expensive to render than
     /// hard shadows.
     ///
+    /// For a directional light the size is the light's angular diameter in
+    /// radians: the sun's is about 0.00925. A shadow edge then widens with the
+    /// distance from its caster as the sun's disc makes it, never below one
+    /// shadow-map texel.
+    ///
     /// [`ShadowFilteringMethod::Temporal`]: crate::ShadowFilteringMethod::Temporal
     #[cfg(feature = "experimental_pbr_pcss")]
     pub soft_shadow_size: Option<f32>,

@@ -3,7 +3,7 @@ import package::render::{
     mesh_view_bindings as view_bindings,
     shadow_sampling::{
         SPOT_SHADOW_TEXEL_SIZE, sample_shadow_cubemap, sample_shadow_cubemap_pcss,
-        sample_shadow_map, sample_shadow_map_pcss,
+        sample_shadow_map, sample_shadow_map_pcss, sample_directional_shadow_map_pcss_metres,
     }
 };
 
@@ -198,14 +198,18 @@ fn sample_directional_cascade(
     let array_index = i32((*light).depth_texture_base_index + cascade_index);
     let texel_size = (*cascade).texel_size;
 
-    // If soft shadows are enabled, use the PCSS path.
+    // If soft shadows are enabled, use the PCSS path. A directional light's
+    // size is its angular diameter, and the cascade's depth row gives metres.
     if ((*light).soft_shadow_size > 0.0) {
-        return sample_shadow_map_pcss(
+        let m = (*cascade).clip_from_world;
+        let depth_per_metre = length(vec3<f32>(m[0].z, m[1].z, m[2].z));
+        return sample_directional_shadow_map_pcss_metres(
             light_local.xy,
             light_local.z,
             array_index,
             frag_coord_xy,
             texel_size,
+            1.0 / depth_per_metre,
             (*light).soft_shadow_size,
         );
     }

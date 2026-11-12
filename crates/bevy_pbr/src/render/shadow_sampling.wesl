@@ -271,6 +271,63 @@ fn sample_shadow_map(
     return 0.0;
 }
 
+/// Samples a directional cascade with percentage-closer soft shadows in metres.
+///
+/// `light_angle` is the angular diameter of the light in radians, and
+/// `metres_per_depth` converts a difference of the cascade's depth into metres.
+/// The blocker search finds how far the nearest caster is from the receiver
+/// along the light, and the penumbra is that distance times the light's angle,
+/// as a disc of light makes it. The filter never goes below one texel: under
+/// that, the shadow map's texel steps show along an edge.
+fn sample_directional_shadow_map_pcss_metres(
+    light_local: vec2<f32>,
+    depth: f32,
+    array_index: i32,
+    frag_coord_xy: vec2<f32>,
+    texel_size: f32,
+    metres_per_depth: f32,
+    light_angle: f32,
+) -> f32 {
+    // Casters up to this far from the receiver widen its penumbra.
+    let search_distance = 32.0;
+    let half_angle = 0.5 * light_angle;
+    let search_radius = max(search_distance * half_angle, 2.0 * texel_size);
+    let shadow_map_size = vec2<f32>(textureDimensions(view_bindings::directional_shadow_textures));
+    // A blocker must be nearer the light than the receiver by more than the search
+    // radius, or a sloped receiver's own surface counts as its caster.
+    let margin = search_radius / metres_per_depth;
+    let search_scale = search_radius / (texel_size * shadow_map_size);
+    var blocker_sum = 0.0;
+    var blocker_count = 0.0;
+    for (var i = 0u; i < 8u; i++) {
+        let found = search_for_blockers_in_shadow_map_hardware(
+            light_local + D3D_SAMPLE_POINT_POSITIONS[i] * 2.0 * search_scale,
+            depth + margin,
+            array_index,
+        );
+        blocker_sum += found.x;
+        blocker_count += found.y;
+    }
+    var blocker_distance = 0.0;
+    if (blocker_count > 0.0) {
+        blocker_distance = (blocker_sum / blocker_count - depth) * metres_per_depth;
+    }
+    let radius = max(blocker_distance * half_angle, texel_size);
+
+    let uv_offset_scale = radius / (texel_size * shadow_map_size);
+    let rotation_matrix = random_rotation_matrix(frag_coord_xy, false);
+    var sum = 0.0;
+    sum += sample_shadow_map_hardware(light_local + (rotation_matrix * utils::SPIRAL_OFFSET_0_) * uv_offset_scale, depth, array_index);
+    sum += sample_shadow_map_hardware(light_local + (rotation_matrix * utils::SPIRAL_OFFSET_1_) * uv_offset_scale, depth, array_index);
+    sum += sample_shadow_map_hardware(light_local + (rotation_matrix * utils::SPIRAL_OFFSET_2_) * uv_offset_scale, depth, array_index);
+    sum += sample_shadow_map_hardware(light_local + (rotation_matrix * utils::SPIRAL_OFFSET_3_) * uv_offset_scale, depth, array_index);
+    sum += sample_shadow_map_hardware(light_local + (rotation_matrix * utils::SPIRAL_OFFSET_4_) * uv_offset_scale, depth, array_index);
+    sum += sample_shadow_map_hardware(light_local + (rotation_matrix * utils::SPIRAL_OFFSET_5_) * uv_offset_scale, depth, array_index);
+    sum += sample_shadow_map_hardware(light_local + (rotation_matrix * utils::SPIRAL_OFFSET_6_) * uv_offset_scale, depth, array_index);
+    sum += sample_shadow_map_hardware(light_local + (rotation_matrix * utils::SPIRAL_OFFSET_7_) * uv_offset_scale, depth, array_index);
+    return sum / 8.0;
+}
+
 /// Samples the shadow map for a directional light when percentage-closer soft
 /// shadows are being used.
 ///
